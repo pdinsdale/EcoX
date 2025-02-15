@@ -1,124 +1,20 @@
-# from flask import Flask, Response, jsonify, send_file # type: ignore
-# import cv2 # type: ignore
-# import time
-# from inference_sdk import InferenceHTTPClient # type: ignore
-# from flask_cors import CORS # type: ignore
-
-# app = Flask(__name__)
-# CORS(app)
-
-# # Open webcam
-# cap = cv2.VideoCapture(0)
-
-# # Initialize Roboflow Client
-# CLIENT = InferenceHTTPClient(
-#     api_url="https://outline.roboflow.com",
-#     api_key="bTMMcL56FvfEg04EEMji"
-# )
-
-# MODEL_ID = "taco-trash-annotations-in-context/16"
-# IMAGE_FOLDER = "./saved_detections"
-# image_list = []
-
-# # Stability tracking
-# stable_frames = {}
-# required_stable_frames = 5
-# previous_boxes = {}
-# image_count = {}
-# detected_timestamps = {}
-
-# # Minimum size for detection
-# MIN_WIDTH = 300
-# MIN_HEIGHT = 300
-
-# def generate_frames():
-#     """ Capture frames, detect objects, and stream video with bounding boxes. """
-#     while True:
-#         success, frame = cap.read()
-#         if not success:
-#             break
-
-#         result = CLIENT.infer(frame, model_id=MODEL_ID)
-
-#         for obj in result.get("predictions", []):
-#             x, y, w, h = int(obj["x"]), int(obj["y"]), int(obj["width"]), int(obj["height"])
-#             class_name = obj["class"]
-
-#             # Ignore small detections
-#             if w < MIN_WIDTH or h < MIN_HEIGHT:
-#                 continue
-
-#             # Bounding box tracking
-#             bbox = (x, y, w, h)
-#             if class_name in previous_boxes:
-#                 prev_x, prev_y, prev_w, prev_h = previous_boxes[class_name]
-#                 box_shift = abs(x - prev_x) + abs(y - prev_y) + abs(w - prev_w) + abs(h - prev_h)
-#                 if box_shift > 50:
-#                     stable_frames[class_name] = 0
-
-#             previous_boxes[class_name] = bbox
-#             stable_frames[class_name] = stable_frames.get(class_name, 0) + 1
-
-#             cv2.rectangle(frame, (x - w // 2, y - h // 2), (x + w // 2, y + h // 2), (0, 255, 0), 2)
-#             cv2.putText(frame, f"{class_name} ({stable_frames[class_name]}/{required_stable_frames})",
-#                         (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-#             if stable_frames[class_name] >= required_stable_frames:
-#                 timestamp = str(int(time.time()))
-#                 crop_path = f"{IMAGE_FOLDER}/{timestamp}.jpg"
-#                 cropped_img = frame[y - h // 2: y + h // 2, x - w // 2: x + w // 2]
-#                 cv2.imwrite(crop_path, cropped_img)
-#                 image_list.append(timestamp + ".jpg")
-
-#                 print(f"✅ Object '{class_name}' detected and cropped! Saved as {timestamp}.jpg")
-
-#                 detected_timestamps[class_name] = time.time()
-#                 stable_frames[class_name] = 0  # Reset stability count
-
-#         # Show "Object Detected!" message for 2 seconds
-#         current_time = time.time()
-#         for detected_class, timestamp in detected_timestamps.items():
-#             if current_time - timestamp < 2:
-#                 cv2.putText(frame, "✅ Object Detected!", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3)
-
-#         # Encode frame as JPEG
-#         _, buffer = cv2.imencode('.jpg', frame)
-#         yield (b'--frame\r\n'
-#                b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-
-# @app.route('/video_feed')
-# def video_feed():
-#     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-# @app.route('/detections', methods=['GET'])
-# def list_detections():
-#     return jsonify({"images": image_list})
-
-# @app.route('/detections/<filename>')
-# def get_detection(filename):
-#     try:
-#         return send_file(f"{IMAGE_FOLDER}/{filename}", mimetype='image/jpeg')
-#     except:
-#         return jsonify({"error": "Image not found"}), 404
-
-# if __name__ == '__main__':
-#     app.run(host='0.0.0.0', port=8080, debug=True)
-
-from flask import Flask, Response, request, jsonify, send_from_directory
-import cv2
+from flask import Flask, Response, request, jsonify, send_from_directory  # type: ignore
+import cv2  # type: ignore
 import time
 import os
-from flask_cors import CORS  # Enable CORS for React
+from flask_cors import CORS  # type: ignore
+from inference_sdk import InferenceHTTPClient  # type: ignore
+import threading
+import queue
 
 app = Flask(__name__)
 CORS(app)
 
-# Initialize camera
-cap = None  # Camera is initially off
+cap = None
 camera_active = False
+frame_thread = None
+frame_queue = queue.Queue(maxsize=3)
 
-# Initialize Roboflow Client
-from inference_sdk import InferenceHTTPClient
 CLIENT = InferenceHTTPClient(
     api_url="https://outline.roboflow.com",
     api_key="bTMMcL56FvfEg04EEMji"
@@ -126,12 +22,11 @@ CLIENT = InferenceHTTPClient(
 
 MODEL_ID = "taco-trash-annotations-in-context/16"
 
-# Ensure images directory exists
 IMAGE_FOLDER = "saved_detections"
 if not os.path.exists(IMAGE_FOLDER):
     os.makedirs(IMAGE_FOLDER)
 
-image_list = []  # Track saved images
+image_list = []
 stable_frames = {}
 required_stable_frames = 5
 previous_boxes = {}
@@ -140,14 +35,21 @@ detected_timestamps = {}
 MIN_WIDTH = 300
 MIN_HEIGHT = 300
 
-def generate_frames():
-    """ Capture frames, detect objects, and stream video with bounding boxes. """
-    global cap, camera_active
+last_detection_time = 0  
+DETECTION_DISPLAY_DURATION = 3
+
+def frame_worker():
+    """Worker thread: continuously captures frames, performs detection, draws annotations,
+    and enqueues processed frames. When an object is detected, the same frame is frozen
+    (repeatedly enqueued) for 2 seconds to help the user notice the detection."""
+    global cap, camera_active, last_detection_time
 
     while camera_active:
+        detection_occurred = False
+        current_time = time.time()
         success, frame = cap.read()
         if not success:
-            break
+            continue
 
         result = CLIENT.infer(frame, model_id=MODEL_ID)
 
@@ -168,47 +70,100 @@ def generate_frames():
             previous_boxes[class_name] = bbox
             stable_frames[class_name] = stable_frames.get(class_name, 0) + 1
 
-            cv2.rectangle(frame, (x - w // 2, y - h // 2), (x + w // 2, y + h // 2), (0, 255, 0), 2)
-            cv2.putText(frame, f"{class_name} ({stable_frames[class_name]}/{required_stable_frames})",
-                        (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            half_w, half_h = w // 2, h // 2
+            cv2.rectangle(frame, (x - half_w, y - half_h), (x + half_w, y + half_h), (0, 255, 0), 2)
+            cv2.putText(frame, f"({stable_frames[class_name]}/{required_stable_frames})",
+                        (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 4)
 
             if stable_frames[class_name] >= required_stable_frames:
-                timestamp = str(int(time.time())) + ".jpg"
+                timestamp = str(int(current_time)) + ".jpg"
                 crop_path = os.path.join(IMAGE_FOLDER, timestamp)
-                cropped_img = frame[y - h // 2: y + h // 2, x - w // 2: x + w // 2]
+                cropped_img = frame[y - half_h: y + half_h, x - half_w: x + half_w]
                 cv2.imwrite(crop_path, cropped_img)
 
                 if timestamp not in image_list:
                     image_list.append(timestamp)
 
-                print(f"✅ Object '{class_name}' detected! Saved as {crop_path}")
+                print(f"Object '{class_name}' detected! Saved as {crop_path}")
 
-                cv2.putText(frame, "✅ Object Detected!", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
+                last_detection_time = current_time
+                stable_frames[class_name] = 0
+                detection_occurred = True
 
-                detected_timestamps[class_name] = time.time()
-                stable_frames[class_name] = 0  
+        if current_time - last_detection_time < DETECTION_DISPLAY_DURATION:
+            text = "OBJECT DETECTED!"
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            font_scale = 1.5
+            thickness = 3
+            
+            text_size, baseline = cv2.getTextSize(text, font, font_scale, thickness)
+            text_x = int((frame.shape[1] - text_size[0]) / 2)
+            text_y = int(text_size[1] + 20) 
+            
+            cv2.rectangle(frame,
+                          (text_x - 10, text_y - text_size[1] - 10),
+                          (text_x + text_size[0] + 10, text_y + 10),
+                          (0, 0, 0), -1)
+            cv2.putText(frame, text, (text_x, text_y),
+                        font, font_scale, (0, 0, 255), thickness, cv2.LINE_AA)
 
-        _, buffer = cv2.imencode('.jpg', frame)
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+        ret, buffer = cv2.imencode('.jpg', frame)
+        if not ret:
+            continue
+        frame_bytes = buffer.tobytes()
+
+        try:
+            frame_queue.put(frame_bytes, block=False)
+        except queue.Full:
+            try:
+                frame_queue.get_nowait()
+            except queue.Empty:
+                pass
+            frame_queue.put(frame_bytes)
+
+        if detection_occurred:
+            freeze_until = time.time() + 2
+            while time.time() < freeze_until and camera_active:
+                try:
+                    frame_queue.put(frame_bytes, block=False)
+                except queue.Full:
+                    try:
+                        frame_queue.get_nowait()
+                    except queue.Empty:
+                        pass
+                    frame_queue.put(frame_bytes)
+                time.sleep(0.1)
+
+def generate_frames():
+    """Flask generator: yields processed frames from the queue for the video feed."""
+    while camera_active or not frame_queue.empty():
+        try:
+            frame_bytes = frame_queue.get(timeout=0.1)
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        except queue.Empty:
+            continue
 
 @app.route('/start_camera')
 def start_camera():
-    """ Start the camera. """
-    global cap, camera_active
+    global cap, camera_active, frame_thread
     if not camera_active:
-        cap = cv2.VideoCapture(0)  # Open the webcam
+        cap = cv2.VideoCapture(0)
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         camera_active = True
+        frame_thread = threading.Thread(target=frame_worker, daemon=True)
+        frame_thread.start()
         print("✅ Camera started!")
         return jsonify({"status": "Camera started"}), 200
     return jsonify({"status": "Camera already running"}), 400
 
 @app.route('/stop_camera')
 def stop_camera():
-    """ Stop the camera. """
-    global cap, camera_active
+    global cap, camera_active, frame_thread
     if camera_active:
         camera_active = False
+        if frame_thread is not None:
+            frame_thread.join(timeout=2)
         cap.release()
         print("🛑 Camera stopped!")
         return jsonify({"status": "Camera stopped"}), 200
@@ -216,19 +171,16 @@ def stop_camera():
 
 @app.route('/video_feed')
 def video_feed():
-    """ Streams live webcam feed with object detection. """
     if camera_active:
         return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
     return jsonify({"status": "Camera is off"}), 400
 
 @app.route('/detections', methods=['GET'])
 def list_detections():
-    """ Returns a list of saved images. """
     return jsonify({"images": image_list})
 
 @app.route('/detections/<filename>')
 def get_detection(filename):
-    """ Serves a saved image from saved_detections directory. """
     return send_from_directory(IMAGE_FOLDER, filename)
 
 if __name__ == '__main__':
