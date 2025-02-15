@@ -2,7 +2,7 @@ from flask import Flask, Response, request, jsonify, send_from_directory  # type
 import cv2  # type: ignore
 import time
 import os
-from flask_cors import CORS  # type: ignore
+from flask_cors import CORS  # type: ignore  # Enable CORS for React
 from inference_sdk import InferenceHTTPClient  # type: ignore
 import threading
 import queue
@@ -15,6 +15,7 @@ camera_active = False
 frame_thread = None
 frame_queue = queue.Queue(maxsize=3)
 
+# Initialize Roboflow Client
 CLIENT = InferenceHTTPClient(
     api_url="https://outline.roboflow.com",
     api_key="bTMMcL56FvfEg04EEMji"
@@ -41,7 +42,11 @@ DETECTION_DISPLAY_DURATION = 3
 def frame_worker():
     """Worker thread: continuously captures frames, performs detection, draws annotations,
     and enqueues processed frames. When an object is detected, the same frame is frozen
-    (repeatedly enqueued) for 2 seconds to help the user notice the detection."""
+    (repeatedly enqueued) for 2 seconds to help the user notice the detection.
+    
+    Now, when multiple detections are present, only the one with the largest area (assumed
+    to be the closest to the camera) is processed.
+    """
     global cap, camera_active, last_detection_time
 
     while camera_active:
@@ -53,12 +58,26 @@ def frame_worker():
 
         result = CLIENT.infer(frame, model_id=MODEL_ID)
 
+        best_obj = None
+        best_area = 0
         for obj in result.get("predictions", []):
-            x, y, w, h = int(obj["x"]), int(obj["y"]), int(obj["width"]), int(obj["height"])
-            class_name = obj["class"]
-
+            x = int(obj["x"])
+            y = int(obj["y"])
+            w = int(obj["width"])
+            h = int(obj["height"])
             if w < MIN_WIDTH or h < MIN_HEIGHT:
                 continue
+            area = w * h
+            if area > best_area:
+                best_area = area
+                best_obj = obj
+
+        if best_obj is not None:
+            x = int(best_obj["x"])
+            y = int(best_obj["y"])
+            w = int(best_obj["width"])
+            h = int(best_obj["height"])
+            class_name = best_obj["class"]
 
             bbox = (x, y, w, h)
             if class_name in previous_boxes:
@@ -88,6 +107,7 @@ def frame_worker():
 
                 last_detection_time = current_time
                 stable_frames[class_name] = 0
+
                 detection_occurred = True
 
         if current_time - last_detection_time < DETECTION_DISPLAY_DURATION:
@@ -95,11 +115,10 @@ def frame_worker():
             font = cv2.FONT_HERSHEY_SIMPLEX
             font_scale = 1.5
             thickness = 3
-            
             text_size, baseline = cv2.getTextSize(text, font, font_scale, thickness)
             text_x = int((frame.shape[1] - text_size[0]) / 2)
-            text_y = int(text_size[1] + 20) 
-            
+            text_y = int(text_size[1] + 20)
+
             cv2.rectangle(frame,
                           (text_x - 10, text_y - text_size[1] - 10),
                           (text_x + text_size[0] + 10, text_y + 10),
