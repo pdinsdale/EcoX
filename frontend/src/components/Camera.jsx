@@ -8,22 +8,22 @@ function Camera() {
   const [cameraOn, setCameraOn] = useState(false); // Track camera state
 
   // Function to fetch saved images from Flask
-  const fetchImages = () => {
-    axios.get("http://127.0.0.1:8080/detections")
-      .then(response => {
-        setImages(response.data.images);
-      })
-      .catch(error => {
-        console.error("Error fetching images:", error);
-      });
-  };
+  // const fetchImages = () => {
+  //   axios.get("http://127.0.0.1:8080/detections")
+  //     .then(response => {
+  //       setImages(response.data.images);
+  //     })
+  //     .catch(error => {
+  //       console.error("Error fetching images:", error);
+  //     });
+  // };
 
   // Fetch images initially and every 2 seconds
-  useEffect(() => {
-    fetchImages();
-    const interval = setInterval(fetchImages, 2000);
-    return () => clearInterval(interval);
-  }, []);
+  // useEffect(() => {
+  //   fetchImages();
+  //   const interval = setInterval(fetchImages, 2000);
+  //   return () => clearInterval(interval);
+  // }, []);
 
   // Start Camera
   const startCamera = () => {
@@ -71,7 +71,7 @@ function Camera() {
       {/* Right Side - Saved Images */}
       <div>
         <h2>Saved Detections</h2>
-        {images.length === 0 ? (
+        {/* {images.length === 0 ? (
           <p>No images detected yet.</p>
         ) : (
           <div>
@@ -85,7 +85,7 @@ function Camera() {
               />
             ))}
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );
