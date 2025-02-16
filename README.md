@@ -20,5 +20,5 @@ The React app should open automatically in your browser.
 Technologies used:
 React - Frontend App
 Backend - Flask App
-OpenCV - Object Detection
+TACO Trash Annotations - Object Detection
 Google Gemini - AI Tool to give insights on objects
