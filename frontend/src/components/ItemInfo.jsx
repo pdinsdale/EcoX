@@ -1,9 +1,25 @@
 import { useState, useEffect } from 'react';
 import './ItemInfo.css'
+import earthIcon from '../assets/earth.png';
 
 function ItemInfo(props) {
     const [open, setOpen] = useState(false);
     const [tab, setTab] = useState("impact");
+
+    const processText = (str) => {
+        const colonIndex = str.indexOf(':');
+        if (colonIndex === -1) {
+          // If no colon found, return text without underlining
+          return <span>{str}</span>;
+        }
+        
+        return (
+          <>
+            <span className="underline">{str.slice(0, colonIndex + 1)}</span>
+            {str.slice(colonIndex + 1)}
+          </>
+        );
+      };
 
     const toggle = () => {
         setOpen(!open);
@@ -11,16 +27,16 @@ function ItemInfo(props) {
 
     return (
         <div className="ItemInfo">
-            <button onClick={toggle}>{props.label}</button>
+            <button className="button" onClick={toggle}>{props.label}</button>
             {open && (
             <div className="toggle">
                 <div className="card-container">
                     {/* Image Section */}
-                    <img 
+                    {/* <img 
                         src="/mnt/data/image.png" 
                         alt="Recycling Bins" 
                         className="card-image"
-                    />
+                    /> */}
 
                     {/* Toggle Buttons */}
                     <div className="button-group">
@@ -42,12 +58,16 @@ function ItemInfo(props) {
                     <div className="content">
                     {tab === "impact" ? (
                         <>
-                            <strong><p>Impact:</p></strong>
+                            <strong><p>Environmental Impact of Manufacturing:</p></strong>
                             {props.impact.map((r, i) => (
-                                <p key={i}>{r}</p>
+                                <>
+                                    <p key={i}>{processText(r)}</p>
+                                </>
                             ))}
 
-                            <strong><p>Current Impact:</p></strong>
+                            <br />
+
+                            <strong><p>Environmental Impact of Regular Use:</p></strong>
                             {props.current_impact.map((r, i) => (
                                 <p key={i}>{r}</p>
                             ))}
@@ -57,9 +77,10 @@ function ItemInfo(props) {
                             <strong><p>Alternatives:</p></strong>
                             {props.alternatives.map((r, i) => (
                                 <div key={i}>
-                                    <p>{r.name} - {r.company}</p>
+                                    <p>{processText(r.name)}{r.company !== "N/A" ? ` - ${r.company}` : ""}</p>
                                     <p>{r.description}</p>
-                                    <p>{r.link}</p>
+                                    <p>{r.link !== "N/A" ? r.link : ""}</p>
+                                    <br />
                                 </div>
                             ))}
                         </>

@@ -1,11 +1,6 @@
-.card-container {
-    max-width: 600px;
-    margin: 20px auto;
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    font-family: Arial, sans-serif;
+.ItemInfo {
+    display: flex;
+    flex-direction: column;
 }
 
 .card-image {
@@ -15,7 +10,7 @@
 
 .button-group {
     display: flex;
-    border-bottom: 2px solid #ddd;
+    /* border-bottom: 2px solid #ddd; */
 }
 
 .button {
@@ -25,9 +20,27 @@
     font-weight: bold;
     cursor: pointer;
     border: none;
-    background: #f0f0f0;
-    color: #555;
+    /* background: #f0f0f0; */
+    background-color: white;
+    /* color: #555; */
     transition: background 0.3s, color 0.3s;
+    margin: 3px 10px;
+    width: 97%;
+    /* text-align: left; */
+}
+
+.card-container {
+    /* max-width: 600px; */
+    padding: 10px;
+    margin: 10px;
+    margin-left: 10px;
+    background: white;
+    border-radius: 3px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    width: 97%;
+    border-radius: 10px;
 }
 
 .button.active {
@@ -39,5 +52,32 @@
     padding: 20px;
     font-size: 16px;
     color: #333;
-    text-align: center;
+    /* text-align: center; */
 }
+
+/* @keyframes fallDown {
+    0% {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.toggle {
+    width: 100%;
+    animation: fallDown 0.5s ease-out;
+    display: block;
+} */
+
+.impact-item {
+    display: flex;
+    align-items: center;
+  }
+  
+  .impact-item img {
+    margin-right: 8px; /* Optional, adds spacing between the image and the text */
+  }
+  
