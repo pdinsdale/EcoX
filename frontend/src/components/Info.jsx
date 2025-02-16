@@ -27,11 +27,11 @@ function Info() {
       setMessages(prevMessages => [...prevMessages, parsedData]);
       console.log(parsedData)
 
-      setMessageComponents(prevComponents => [...prevComponents, <ItemInfo key={Date.now()}
+      setMessageComponents(prevComponents => [...prevComponents, parsedData.item ? <ItemInfo key={Date.now()}
                                                                            label={parsedData.item}
                                                                            impact={parsedData.impact}
                                                                            current_impact={parsedData.current_impact}
-                                                                           alternatives={parsedData.alternatives} />]);
+                                                                           alternatives={parsedData.alternatives} /> : null]);
     };
 
     eventSource.onerror = (error) => {

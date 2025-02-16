@@ -49,8 +49,6 @@ function Home() {
                     </div>
                 </div>
             </div>
-
-            <Card infoContent={"This is infomation"} resourcesContent={"This is some resources"} />
             
             <button onClick={() => navigate('/scan')}>Click</button>
         </div>
