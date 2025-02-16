@@ -1,11 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import "./../App.css";
 import styles from './Camera.module.css'
 
 function Camera() {
   const [images, setImages] = useState([]);
-  const [cameraOn, setCameraOn] = useState(false); // Track camera state
+  const [cameraOn, setCameraOn] = useState(false);
+
+  // const handleToggleWebcam = useCallback(() => {
+  //   setCameraOn((prev) => !prev);
+  // }, []);
 
   // Function to fetch saved images from Flask
   // const fetchImages = () => {
@@ -26,24 +30,35 @@ function Camera() {
   // }, []);
 
   // Start Camera
-  const startCamera = () => {
-    axios.get("http://127.0.0.1:8080/start_camera")
-      .then(() => {
-        setCameraOn(true);
-      })
-      .catch(error => {
-        console.error("Error starting camera:", error);
-      });
-  };
+  // const startCamera = () => {
+  //   axios.get("http://127.0.0.1:8080/start_camera")
+  //     .then(() => {
+  //       setCameraOn(true);
+  //     })
+  //     .catch(error => {
+  //       console.error("Error starting camera:", error);
+  //     });
+  // };
 
-  // Stop Camera
-  const stopCamera = () => {
-    axios.get("http://127.0.0.1:8080/stop_camera")
+  // // Stop Camera
+  // const stopCamera = () => {
+  //   axios.get("http://127.0.0.1:8080/stop_camera")
+  //     .then(() => {
+  //       setCameraOn(false);
+  //     })
+  //     .catch(error => {
+  //       console.error("Error stopping camera:", error);
+  //     });
+  // };
+
+  const toggleCamera = () => {
+    const action = cameraOn ? "stop_camera" : "start_camera";
+    axios.get(`http://127.0.0.1:8080/${action}`)
       .then(() => {
-        setCameraOn(false);
+        setCameraOn(!cameraOn);
       })
       .catch(error => {
-        console.error("Error stopping camera:", error);
+        console.error(`Error toggling camera:`, error);
       });
   };
 
@@ -59,14 +74,7 @@ function Camera() {
         <div className={styles.Camera}></div>
       )}
 
-      <div className={styles.ButtonWrapper}>
-        <button onClick={startCamera} disabled={cameraOn}>
-          Start Camera
-        </button>
-        <button onClick={stopCamera} disabled={!cameraOn}>
-          Stop Camera
-        </button>
-      </div>
+      <button className={styles.toggleCamera} onClick={toggleCamera}>{cameraOn ? "Stop Camera" : "Start Camera"}</button>
     </div>
   );
 }
