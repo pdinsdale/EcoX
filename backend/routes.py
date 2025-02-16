@@ -6,7 +6,9 @@ from flask_cors import CORS  # type: ignore  # Enable CORS for React
 from inference_sdk import InferenceHTTPClient  # type: ignore
 import threading
 import queue
+from geminiOutput import getImageData
 from dotenv import load_dotenv
+import asyncio
 
 app = Flask(__name__)
 CORS(app)
@@ -43,7 +45,7 @@ MIN_HEIGHT = 200
 last_detection_time = 0  
 DETECTION_DISPLAY_DURATION = 3
 
-def frame_worker():
+async def frame_worker():
     """Worker thread: continuously captures frames, performs detection, draws annotations,
     and enqueues processed frames. When an object is detected, the same frame is frozen
     (repeatedly enqueued) for 2 seconds to help the user notice the detection.
@@ -122,13 +124,18 @@ def frame_worker():
             text_size, baseline = cv2.getTextSize(text, font, font_scale, thickness)
             text_x = int((frame.shape[1] - text_size[0]) / 2)
             text_y = int(text_size[1] + 20)
-
+            
             cv2.rectangle(frame,
                           (text_x - 10, text_y - text_size[1] - 10),
                           (text_x + text_size[0] + 10, text_y + 10),
                           (0, 0, 0), -1)
             cv2.putText(frame, text, (text_x, text_y),
                         font, font_scale, (0, 0, 255), thickness, cv2.LINE_AA)
+        
+
+            # API CALL IS MADE HERE
+            answer =  await getImageData(crop_path)
+
 
         ret, buffer = cv2.imencode('.jpg', frame)
         if not ret:
