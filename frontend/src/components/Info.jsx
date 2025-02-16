@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import "../App.css";
 
 function Info() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([])
   const [isStreaming, setIsStreaming] = useState(true);
 
   useEffect(() => {
@@ -22,6 +22,7 @@ function Info() {
       }
 
       setMessages(prevMessages => [...prevMessages, parsedData]);
+      console.log(parsedData)
     };
 
     eventSource.onerror = (error) => {
