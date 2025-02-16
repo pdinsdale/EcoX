@@ -1,11 +1,14 @@
-import logo from './logo.svg';
-import './App.css';
+import '../App.css';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-function App() {
+function Home() {
+    const navigate = useNavigate();
+
   return (
     <div className="Home">
         <div className="app-name">
-
+            <p>Home</p>
         </div>
         <div className="how-it-works">
             <div className="header">
@@ -46,11 +49,10 @@ function App() {
                 </div>
             </div>
         </div>
-        <div className="go-button">
 
-        </div>
+        <button onClick={() => navigate('/camera')}>Click</button>
     </div>
   );
 }
 
-export default App;
+export default Home;
