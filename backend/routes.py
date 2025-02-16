@@ -33,8 +33,8 @@ required_stable_frames = 5
 previous_boxes = {}
 detected_timestamps = {}
 
-MIN_WIDTH = 300
-MIN_HEIGHT = 300
+MIN_WIDTH = 200
+MIN_HEIGHT = 200
 
 last_detection_time = 0  
 DETECTION_DISPLAY_DURATION = 3
