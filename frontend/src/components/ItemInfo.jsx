@@ -54,10 +54,14 @@ function ItemInfo(props) {
                         </>
                     ) : (
                         <>
-                            {/* <strong><p>Current Impact:</p></strong> */}
-                            {/* {props.alternatives.map((r, i) => (
-                                <p key={i}>{r}</p>
-                            ))} */}
+                            <strong><p>Alternatives:</p></strong>
+                            {props.alternatives.map((r, i) => (
+                                <div key={i}>
+                                    <p>{r.name} - {r.company}</p>
+                                    <p>{r.description}</p>
+                                    <p>{r.link}</p>
+                                </div>
+                            ))}
                         </>
                     )}
                     </div>
