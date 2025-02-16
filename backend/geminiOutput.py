@@ -30,8 +30,8 @@ def getImageData(image):
    openedImage = PIL.Image.open(image)
    
    response = client.models.generate_content(
-      model='gemini-2.0-pro-exp-02-05',
-      # model='gemini-2.0-flash-lite-preview-02-05',
+      # model='gemini-2.0-pro-exp-02-05',
+      model='gemini-2.0-flash-lite-preview-02-05',
       contents=[openedImage],
       config=types.GenerateContentConfig(
          system_instruction=instructions

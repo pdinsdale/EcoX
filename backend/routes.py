@@ -1,12 +1,13 @@
-from flask import Flask, Response, request, jsonify, send_from_directory  # type: ignore
+from flask import Flask, Response, request, jsonify, send_from_directory, stream_with_context  # type: ignore
 import cv2  # type: ignore
 import time
 import os
+import json
 from flask_cors import CORS  # type: ignore  # Enable CORS for React
 from inference_sdk import InferenceHTTPClient  # type: ignore
 import threading
 import queue
-from geminiOutput import getImageData
+from geminiOutput import getImageData  # synchronous API call
 from dotenv import load_dotenv
 import asyncio
 
@@ -45,16 +46,41 @@ MIN_HEIGHT = 200
 last_detection_time = 0  
 DETECTION_DISPLAY_DURATION = 3
 
-async def frame_worker():
-    """Worker thread: continuously captures frames, performs detection, draws annotations,
-    and enqueues processed frames. When an object is detected, the same frame is frozen
-    (repeatedly enqueued) for 2 seconds to help the user notice the detection.
-    
-    Now, when multiple detections are present, only the one with the largest area (assumed
-    to be the closest to the camera) is processed.
-    """
-    global cap, camera_active, last_detection_time
+api_call_scheduled = False
 
+api_results = []
+
+sse_queue = queue.Queue()
+
+api_loop = asyncio.new_event_loop()
+
+def run_api_loop(loop):
+    asyncio.set_event_loop(loop)
+    loop.run_forever()
+
+api_thread = threading.Thread(target=run_api_loop, args=(api_loop,), daemon=True)
+api_thread.start()
+
+async def process_get_image_data(crop_path):
+    loop = asyncio.get_running_loop()
+    print(f"[DEBUG] In process_get_image_data for crop_path: {crop_path}")
+    try:
+        answer = await loop.run_in_executor(None, getImageData, crop_path)
+    except Exception as e:
+        print(f"[ERROR] Exception during getImageData: {e}")
+        answer = None
+    if answer is None:
+        print("[DEBUG] getImageData returned None.")
+    else:
+        print(f"[DEBUG] getImageData returned: {answer}")
+    api_results.append(answer)
+    sse_queue.put(answer)
+    print("API response received and queued:", answer)
+
+async def frame_worker():
+    global cap, camera_active, last_detection_time, api_call_scheduled
+
+    crop_path = None
     while camera_active:
         detection_occurred = False
         current_time = time.time()
@@ -101,7 +127,7 @@ async def frame_worker():
                         (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 4)
 
             if stable_frames[class_name] >= required_stable_frames:
-                timestamp = str(int(current_time)) + ".jpg"
+                timestamp = f"{int(current_time)}.jpg"
                 crop_path = os.path.join(IMAGE_FOLDER, timestamp)
                 cropped_img = frame[y - half_h: y + half_h, x - half_w: x + half_w]
                 cv2.imwrite(crop_path, cropped_img)
@@ -109,7 +135,7 @@ async def frame_worker():
                 if timestamp not in image_list:
                     image_list.append(timestamp)
 
-                print(f"Object '{class_name}' detected! Saved as {crop_path}")
+                print(f"[DEBUG] Object '{class_name}' detected! Saved as {crop_path}")
 
                 last_detection_time = current_time
                 stable_frames[class_name] = 0
@@ -124,18 +150,23 @@ async def frame_worker():
             text_size, baseline = cv2.getTextSize(text, font, font_scale, thickness)
             text_x = int((frame.shape[1] - text_size[0]) / 2)
             text_y = int(text_size[1] + 20)
-            
+
             cv2.rectangle(frame,
                           (text_x - 10, text_y - text_size[1] - 10),
                           (text_x + text_size[0] + 10, text_y + 10),
                           (0, 0, 0), -1)
             cv2.putText(frame, text, (text_x, text_y),
                         font, font_scale, (0, 0, 255), thickness, cv2.LINE_AA)
-        
-
-            # API CALL IS MADE HERE
-            answer =  await getImageData(crop_path)
-
+            
+            if crop_path and not api_call_scheduled:
+                try:
+                    asyncio.run_coroutine_threadsafe(process_get_image_data(crop_path), api_loop)
+                    print("[DEBUG] API call scheduled for crop_path:", crop_path)
+                    api_call_scheduled = True
+                except Exception as e:
+                    print("[ERROR] Could not schedule API call:", e)
+        else:
+            api_call_scheduled = False
 
         ret, buffer = cv2.imencode('.jpg', frame)
         if not ret:
@@ -181,8 +212,10 @@ def start_camera():
         cap = cv2.VideoCapture(0)
         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         camera_active = True
-        frame_thread = threading.Thread(target=frame_worker, daemon=True)
+
+        frame_thread = threading.Thread(target=lambda: asyncio.run(frame_worker()), daemon=True)
         frame_thread.start()
+
         print("✅ Camera started!")
         return jsonify({"status": "Camera started"}), 200
     return jsonify({"status": "Camera already running"}), 400
@@ -195,6 +228,7 @@ def stop_camera():
         if frame_thread is not None:
             frame_thread.join(timeout=2)
         cap.release()
+        sse_queue.put({"status": "stop"})
         print("🛑 Camera stopped!")
         return jsonify({"status": "Camera stopped"}), 200
     return jsonify({"status": "Camera is not running"}), 400
@@ -212,6 +246,24 @@ def list_detections():
 @app.route('/detections/<filename>')
 def get_detection(filename):
     return send_from_directory(IMAGE_FOLDER, filename)
+
+@app.route('/api_results', methods=['GET'])
+def get_api_results():
+    return jsonify({"api_results": api_results})
+
+@app.route('/stream_api')
+def stream_api():
+    def event_stream():
+        yield "data: communication response start\n\n"
+        while True:
+            try:
+                message = sse_queue.get(timeout=0.5)
+                yield "data: " + json.dumps(message) + "\n\n"
+                if isinstance(message, dict) and message.get("status") == "stop":
+                    break
+            except queue.Empty:
+                print("pn")
+    return Response(stream_with_context(event_stream()), mimetype="text/event-stream")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)
