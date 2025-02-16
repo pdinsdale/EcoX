@@ -52,10 +52,12 @@ const [messages, setMessages] = useState([{'item': 'Leather Wallet', 'impact': [
       {/* <div className="ItemWrapper">{messageComponents}</div> */}
 
       <div className="ItemSection">
+
+
         <ul className="ItemWrapper">
           {messages.map((msg, index) => (
               <div key={index}>
-                  <ItemInfo label={msg.item} impact={msg.impact} current_impact={msg.current_impact} alternatives={msg.alternatives} />
+                  <ItemInfo label={msg.item} impact={msg.impact} current_impact={msg.current_impact} alternatives={msg.alternatives}/>
               </div>
           ))}
         </ul>
