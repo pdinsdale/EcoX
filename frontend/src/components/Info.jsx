@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import "../App.css";
+import ItemInfo from './ItemInfo';
 
 function Info() {
   // const [messages, setMessages] = useState([]);
@@ -41,9 +42,12 @@ function Info() {
       {isStreaming ? <p>Streaming data...</p> : <p>Streaming stopped.</p>}
       <ul>
         {messages.map((msg, index) => (
-          <li key={index}>
-            {typeof msg === "object" ? JSON.stringify(msg) : msg}
-          </li>
+            <div key={index}>
+                <ItemInfo label={msg.item} impact={msg.impact} current_impact={msg.current_impact} alternatives={msg.alternatives} />
+            </div>
+        //   <li key={index}>
+        //     {typeof msg === "object" ? JSON.stringify(msg) : msg}
+        //   </li>
         ))}
       </ul>
     </div>

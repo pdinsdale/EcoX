@@ -1,7 +1,6 @@
 import '../App.css';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import Card from './Card';
 
 function Home() {
     const navigate = useNavigate();

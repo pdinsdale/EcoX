@@ -1,0 +1,43 @@
+.card-container {
+    max-width: 600px;
+    margin: 20px auto;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+}
+
+.card-image {
+    width: 100%;
+    display: block;
+}
+
+.button-group {
+    display: flex;
+    border-bottom: 2px solid #ddd;
+}
+
+.button {
+    flex: 1;
+    padding: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    background: #f0f0f0;
+    color: #555;
+    transition: background 0.3s, color 0.3s;
+}
+
+.button.active {
+    background: #4CAF50;
+    color: white;
+}
+
+.content {
+    padding: 20px;
+    font-size: 16px;
+    color: #333;
+    text-align: center;
+}
