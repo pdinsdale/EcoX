@@ -6,6 +6,7 @@ from flask_cors import CORS  # type: ignore  # Enable CORS for React
 from inference_sdk import InferenceHTTPClient  # type: ignore
 import threading
 import queue
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 CORS(app)
@@ -15,10 +16,13 @@ camera_active = False
 frame_thread = None
 frame_queue = queue.Queue(maxsize=3)
 
+load_dotenv()
+key = os.getenv("VISION")
+
 # Initialize Roboflow Client
 CLIENT = InferenceHTTPClient(
     api_url="https://outline.roboflow.com",
-    api_key="bTMMcL56FvfEg04EEMji"
+    api_key=key
 )
 
 MODEL_ID = "taco-trash-annotations-in-context/16"
