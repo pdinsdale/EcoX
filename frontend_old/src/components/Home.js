@@ -1,6 +1,7 @@
 import '../App.css';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import Card from './Card';
 
 function Home() {
     const navigate = useNavigate();
@@ -50,7 +51,10 @@ function Home() {
             </div>
         </div>
 
+        <Card infoContent={"This is infomation"} resourcesContent={"This is some resources"} />
+
         <button onClick={() => navigate('/camera')}>Click</button>
+        <button onClick={() => navigate('/scan')}>Click</button>
     </div>
   );
 }
