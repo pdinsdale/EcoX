@@ -1,11 +1,17 @@
 import cv2
+import os
 import time
 from inference_sdk import InferenceHTTPClient
+from geminiOutput import getImageData
+from dotenv import load_dotenv
+
+load_dotenv()
+key = os.getenv("VISION")
 
 # Initialize the Inference Client with your API key
 CLIENT = InferenceHTTPClient(
     api_url="https://outline.roboflow.com",
-    api_key="bTMMcL56FvfEg04EEMji"  # Replace with your actual Roboflow API key
+    api_key=key  # Replace with your actual Roboflow API key
 )
 
 # Model details
@@ -82,12 +88,14 @@ while True:
 
             # Generate unique filename
             timestamp = int(time.time())  # Get current timestamp
-            crop_filename = f"cropped_{class_name}_{image_count[class_name]}_{timestamp}.jpg"
+            crop_filename = os.path.join("images", f"cropped_{class_name}_{image_count[class_name]}_{timestamp}.jpg")
 
             cropped_img = frame[y - h // 2: y + h // 2, x - w // 2: x + w // 2]
             cv2.imwrite(crop_filename, cropped_img)
 
             print(f"✅ Object '{class_name}' detected and cropped! Saved as {crop_filename}")
+            
+            print(getImageData(crop_filename))
 
             # Store the detection timestamp
             detected_timestamps[class_name] = time.time()

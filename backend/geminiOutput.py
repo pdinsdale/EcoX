@@ -44,5 +44,3 @@ def getImageData(image):
    except json.JSONDecodeError:
       print("Error: failed json")
       return None
-
-print(getImageData(os.getcwd() + '\\images\\nike.jpeg'))
