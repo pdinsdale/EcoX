@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import "../App.css";
 
 function Info() {
+
   const [messages, setMessages] = useState([])
   const [isStreaming, setIsStreaming] = useState(true);
 

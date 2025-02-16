@@ -48,44 +48,24 @@ function Camera() {
   };
 
   return (
-    <div>
-      {/* Left Side - Live Camera */}
-      <div className={`${styles.Camera}`}>
-        <h1>Live Object Detection</h1>
+    <div className={styles.CameraWrapper}>
+      {cameraOn && (
+        <img className={styles.Camera}
+          src="http://127.0.0.1:8080/video_feed"
+          alt="Live Stream"
+        />
+      )}
+      {!cameraOn && (
+        <div className={styles.Camera}></div>
+      )}
+
+      <div className={styles.ButtonWrapper}>
         <button onClick={startCamera} disabled={cameraOn}>
           Start Camera
         </button>
         <button onClick={stopCamera} disabled={!cameraOn}>
           Stop Camera
         </button>
-        {cameraOn && (
-          <img
-            src="http://127.0.0.1:8080/video_feed"
-            alt="Live Stream"
-            width="640"
-            height="480"
-          />
-        )}
-      </div>
-
-      {/* Right Side - Saved Images */}
-      <div>
-        <h2>Saved Detections</h2>
-        {/* {images.length === 0 ? (
-          <p>No images detected yet.</p>
-        ) : (
-          <div>
-            {images.map((image, index) => (
-              <img
-                key={index}
-                src={`http://127.0.0.1:8080/detections/${image}`}
-                alt="Detected object"
-                width="150"
-                height="150"
-              />
-            ))}
-          </div>
-        )} */}
       </div>
     </div>
   );
