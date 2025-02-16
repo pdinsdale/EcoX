@@ -25,6 +25,46 @@
   width: 50%;
 }
 
+.Scan {
+  position: fixed;
+  width: calc(100vw - 30px); /* Subtracts 15px from both sides */
+  height: calc(100vh - 30px); /* Subtracts 15px from top and bottom */
+  background-color: rgb(215, 215, 215);
+  top: 15px;
+  left: 15px;
+  border-radius: 10px;
+
+  display: flex;
+}
+
+.Camera {
+  width: 50%;
+}
+
+.Info {
+  width: 50%;
+}
+
+.Scan {
+  position: fixed;
+  width: calc(100vw - 30px); /* Subtracts 15px from both sides */
+  height: calc(100vh - 30px); /* Subtracts 15px from top and bottom */
+  background-color: rgb(215, 215, 215);
+  top: 15px;
+  left: 15px;
+  border-radius: 10px;
+
+  display: flex;
+}
+
+.Camera {
+  width: 50%;
+}
+
+.Info {
+  width: 50%;
+}
+
 .App-logo {
   height: 40vmin;
   pointer-events: none;
