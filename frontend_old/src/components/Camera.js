@@ -48,14 +48,14 @@ function Camera() {
   };
 
   return (
-    <div className="App" style={{ display: "flex", height: "100vh" }}>
+    <div>
       {/* Left Side - Live Camera */}
-      <div className={styles.Camera}>
+      <div className={`${styles.Camera}`}>
         <h1>Live Object Detection</h1>
-        <button onClick={startCamera} disabled={cameraOn} style={{ margin: "10px", padding: "10px" }}>
+        <button onClick={startCamera} disabled={cameraOn}>
           Start Camera
         </button>
-        <button onClick={stopCamera} disabled={!cameraOn} style={{ margin: "10px", padding: "10px" }}>
+        <button onClick={stopCamera} disabled={!cameraOn}>
           Stop Camera
         </button>
         {cameraOn && (
@@ -74,7 +74,7 @@ function Camera() {
         {images.length === 0 ? (
           <p>No images detected yet.</p>
         ) : (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+          <div>
             {images.map((image, index) => (
               <img
                 key={index}

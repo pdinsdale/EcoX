@@ -5,17 +5,29 @@
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+.Scan {
+  position: fixed;
+  width: calc(100vw - 30px); /* Subtracts 15px from both sides */
+  height: calc(100vh - 30px); /* Subtracts 15px from top and bottom */
+  background-color: rgb(215, 215, 215);
+  top: 15px;
+  left: 15px;
+  border-radius: 10px;
+
+  display: flex;
 }
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+
+.Camera {
+  width: 50%;
 }
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+
+.Info {
+  width: 50%;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
 }
 
 @keyframes logo-spin {
