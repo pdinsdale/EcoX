@@ -1,12 +1,12 @@
 #root {
   max-width: 1280px;
   margin: 0 auto;
-  /* padding: 2rem; */
+  padding: 2rem;
   text-align: center;
 }
 
 .Scan {
-  /* position: fixed; */
+  position: fixed;
   width: calc(100vw - 30px);
   height: calc(100vh - 30px);
   background-color: rgb(215, 215, 215);
@@ -18,11 +18,11 @@
 }
 
 .Camera {
-  width: 50%;
+  width: 14%;
 }
 
 .Info {
-  width: 50%;
+  width: 86%;
 }
 
 .App-logo {

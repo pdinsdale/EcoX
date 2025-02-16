@@ -8,7 +8,7 @@ from inference_sdk import InferenceHTTPClient  # type: ignore
 import threading
 import queue
 from geminiOutput import getImageData  # synchronous API call
-from dotenv import load_dotenv
+from dotenv import load_dotenv # type: ignore
 import asyncio
 
 app = Flask(__name__)
@@ -63,19 +63,18 @@ api_thread.start()
 
 async def process_get_image_data(crop_path):
     loop = asyncio.get_running_loop()
-    print(f"[DEBUG] In process_get_image_data for crop_path: {crop_path}")
+    # print(f"[DEBUG] In process_get_image_data for crop_path: {crop_path}")
     try:
         answer = await loop.run_in_executor(None, getImageData, crop_path)
     except Exception as e:
-        print(f"[ERROR] Exception during getImageData: {e}")
+        # print(f"[ERROR] Exception during getImageData: {e}")
         answer = None
-    if answer is None:
-        print("[DEBUG] getImageData returned None.")
+    # if answer is None:
+    #     print("[DEBUG] getImageData returned None.")
     else:
         print(f"[DEBUG] getImageData returned: {answer}")
     api_results.append(answer)
     sse_queue.put(answer)
-    print("API response received and queued:", answer)
 
 async def frame_worker():
     global cap, camera_active, last_detection_time, api_call_scheduled
@@ -161,7 +160,7 @@ async def frame_worker():
             if crop_path and not api_call_scheduled:
                 try:
                     asyncio.run_coroutine_threadsafe(process_get_image_data(crop_path), api_loop)
-                    print("[DEBUG] API call scheduled for crop_path:", crop_path)
+                    # print("[DEBUG] API call scheduled for crop_path:", crop_path)
                     api_call_scheduled = True
                 except Exception as e:
                     print("[ERROR] Could not schedule API call:", e)
@@ -216,7 +215,7 @@ def start_camera():
         frame_thread = threading.Thread(target=lambda: asyncio.run(frame_worker()), daemon=True)
         frame_thread.start()
 
-        print("✅ Camera started!")
+        print("Camera started!")
         return jsonify({"status": "Camera started"}), 200
     return jsonify({"status": "Camera already running"}), 400
 
@@ -229,7 +228,7 @@ def stop_camera():
             frame_thread.join(timeout=2)
         cap.release()
         sse_queue.put({"status": "stop"})
-        print("🛑 Camera stopped!")
+        print("Camera stopped!")
         return jsonify({"status": "Camera stopped"}), 200
     return jsonify({"status": "Camera is not running"}), 400
 
@@ -247,10 +246,6 @@ def list_detections():
 def get_detection(filename):
     return send_from_directory(IMAGE_FOLDER, filename)
 
-@app.route('/api_results', methods=['GET'])
-def get_api_results():
-    return jsonify({"api_results": api_results})
-
 @app.route('/stream_api')
 def stream_api():
     def event_stream():
@@ -262,7 +257,7 @@ def stream_api():
                 if isinstance(message, dict) and message.get("status") == "stop":
                     break
             except queue.Empty:
-                print("pn")
+                print("")
     return Response(stream_with_context(event_stream()), mimetype="text/event-stream")
 
 if __name__ == '__main__':
